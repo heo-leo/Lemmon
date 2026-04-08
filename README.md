@@ -1,10 +1,12 @@
-[![macOS 10.10+](https://img.shields.io/badge/macOS-10.10+-888)](#install)
-[![Current release](https://img.shields.io/github/release/relikd/Memmon)](https://github.com/relikd/Memmon/releases)
+[![macOS 10.10+](https://img.shields.io/badge/macOS-10.10+-888)](#)
+[![Current release](https://img.shields.io/github/release/relikd/Memmon)](https://github.com/relikd/Memmon/releases/latest)
 [![All downloads](https://img.shields.io/github/downloads/relikd/Memmon/total)](https://github.com/relikd/Memmon/releases)
 
 <img src="img/icon.svg" width="180" height="180">
 
-# Memmon
+
+Memmon
+======
 
 Memmon remembers what your Mac forgets – A simple deamon that restores your window positions on external monitors.
 
@@ -15,17 +17,41 @@ Memmon remembers what your Mac forgets – A simple deamon that restores your wi
   I will add support for this as soon as I have access to an external monitor again (issue [#5](https://github.com/relikd/Memmon/issues/5#issuecomment-1040611494)).
 
 
-## Install
+Usage
+-----
 
-1. You will need macOS 10.10 or newer.
-   Download and unzip the tar.gz from [latest release](https://github.com/relikd/Memmon/releases/latest).
-2. Grant Memmon the Accessibility privilege.
-   Go to "System Preference" > "Security & Privacy" > "Accessibility" and add Memmon to that list.
-   (Otherwise, the app has no purpose as it can't move application windows around.)
-3. Thats it. The app runs in your menu bar.
+Grant Memmon the Accessibility privilege.
+Go to "System Preference" > "Security & Privacy" > "Accessibility" and add Memmon to that list.
+(Otherwise, the app can't move application windows around)
 
-Alternatively, you can compile Memmon from source by running `make`, or call the script directly (`swift src/main.swift`) without building an app bundle.
 
+Installation
+------------
+
+Requires macOS Yosemite (10.10) or higher.
+
+```sh
+brew install --cask relikd/tap/memmon
+xattr -d com.apple.quarantine /Applications/Memmon.app
+```
+
+or download from [releases](https://github.com/relikd/Memmon/releases/latest).
+
+### macOS 10.14.3 or lower
+
+You'll need the Swift 5 Runtime Support.
+Download either from [Apple](https://developer.apple.com/download/all/) (developer account required)
+or use [this dmg](https://github.com/relikd/Darker/raw/refs/heads/main/Swift_5_Runtime_Support.dmg).
+
+### Build from source
+
+- Run `make` to create an app bundle.
+- OR: call the script directly (`swift src/main.swift`).
+- OR: create a new Xcode project, select the Command-Line template, and replace the provided `main.swift` with this one.
+
+
+Options
+-------
 
 ### Menu Bar Icon
 
@@ -50,7 +76,8 @@ defaults delete de.relikd.Memmon icon
 ![menu bar icons](img/status_icons.png)
 
 
-## FAQ
+FAQ
+---
 
 ### Why‽
 
@@ -77,13 +104,7 @@ Actually, I don't want to think about this problem at all – I just want to fix
 
 First off, Memmon is less than 300 lines of code – no dependencies.
 You can audit it in 10 minutes...
-And build it from scratch – just run `make`.
+And build it from scratch.
 
 Secondly, it does one thing and one thing only:
 Save and restore window positions whenever your monitor setup changes.
-
-
-### Develop
-
-You can either run the `main.swift` file directly with `swift main.swift`, via Terminal `./main.swift` (`chmod 755 main.swift`), or create a new Xcode project.
-In Xcode, select the Command-Line template and replace the template provided `main.swift` with this one.
