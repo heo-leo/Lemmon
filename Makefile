@@ -65,4 +65,4 @@ endif
 
 .PHONY: clean
 clean:
-	rm -rf "${APP_NAME}.app" bin_x64 bin_arm64
+	rm -rf "${APP_NAME}.app" bin_x64 bin_arm64 bin_x64.dSYM bin_arm64.dSYM "${APP_NAME}_"*.zip

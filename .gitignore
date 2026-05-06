@@ -1,4 +1,8 @@
 .DS_Store
 /*.app
 /*.tar.gz
+/*.zip
 *.xcodeproj
+*.dSYM
+/bin_x64
+/bin_arm64
