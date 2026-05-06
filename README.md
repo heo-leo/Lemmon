@@ -16,14 +16,6 @@ Lemmon remembers what your Mac forgets – A simple daemon that restores your wi
   (upstream issue [#5](https://github.com/relikd/Memmon/issues/5#issuecomment-1040611494)).
 
 
-Usage
------
-
-Grant Lemmon the Accessibility privilege.
-Go to "System Settings" > "Privacy & Security" > "Accessibility" and add Lemmon to that list.
-(Otherwise, the app can't move application windows around.)
-
-
 Installation
 ------------
 
@@ -34,6 +26,14 @@ brew install --cask heo-leo/tap/lemmon
 ```
 
 or download from [releases](https://github.com/heo-leo/Lemmon/releases/latest).
+
+After installing, you must grant Accessibility permission — `brew install` cannot do this for you (macOS TCC is user-mediated):
+
+1. Launch `Lemmon.app` from `/Applications` (or Spotlight) once.
+2. Open **System Settings → Privacy & Security → 손쉬운 사용 (Accessibility)**.
+3. Toggle `Lemmon.app` **on** in the list.
+
+Without this, save still works but window restore silently no-ops.
 
 ### macOS 10.14.3 or lower
 
