@@ -8,10 +8,21 @@ typealias WinPos = (WinNum, CGRect)  // win-num, bounds
 typealias WinConf = [AppPID: [WinPos]]  // app-pid, window-list
 typealias SpaceId = WinNum  // see NSWindow.windowNumber (Int)
 
+// Private AX SPI used by every macOS window manager to map AX windows back to
+// their CGWindowID. Without it, AX windows can only be matched to CGWindow
+// snapshots positionally, which fails as soon as the two lists differ in length
+// (e.g. Chrome reports many auxiliary AXWindows but only a few CG-visible ones).
+@_silgen_name("_AXUIElementGetWindow")
+func _AXUIElementGetWindow(_ element: AXUIElement, _ identifier: UnsafeMutablePointer<CGWindowID>) -> AXError
+
 class AppDelegate: NSObject, NSApplicationDelegate {
 	private var statusItem: NSStatusItem!
 	private var numScreens: Int = NSScreen.screens.count
 	private var state: [Int: WinConf] = [:]  // [screencount: [pid: [windows]]]
+
+	// captured before macOS rearranges windows on display change; consumed in applicationDidChangeScreenParameters
+	private var preChangeSnapshot: WinConf? = nil
+	private var preChangeNumScreens: Int = 0
 
 	private var spacesAll: [SpaceId] = []  // keep forever (and keep order)
 	private var spacesVisited: Set<WinNum> = []  // fill-up on space-switch
@@ -22,6 +33,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() : true] as CFDictionary)
 		// track space changes
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(self.activeSpaceChanged), name: NSWorkspace.activeSpaceDidChangeNotification, object: nil)
+		// snapshot window positions BEFORE macOS rearranges them on display add/remove.
+		// applicationDidChangeScreenParameters fires after macOS has already moved/resized
+		// windows to fit the new layout, so reading positions there saves corrupted values.
+		CGDisplayRegisterReconfigurationCallback({ (_, flags, userInfo) in
+			guard let userInfo = userInfo else { return }
+			let me = Unmanaged<AppDelegate>.fromOpaque(userInfo).takeUnretainedValue()
+			if flags.contains(.beginConfigurationFlag) && me.preChangeSnapshot == nil {
+				me.preChangeSnapshot = me.getState()
+				me.preChangeNumScreens = NSScreen.screens.count
+			}
+		}, Unmanaged.passUnretained(self).toOpaque())
 		_ = self.currentSpace()  // create space-id win for current space
 		self.spacesVisited = Set(self.getWinIds())
 		// create status menu icon
@@ -48,9 +70,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 	func applicationDidChangeScreenParameters(_ notification: Notification) {
 		if self.numScreens != NSScreen.screens.count {
-			self.saveState()
+			let snap = self.preChangeSnapshot
+			let snapNum = self.preChangeNumScreens != 0 ? self.preChangeNumScreens : nil
+			self.preChangeSnapshot = nil
+			self.preChangeNumScreens = 0
+			self.saveState(snapshot: snap, snapshotNumScreens: snapNum)
 			self.numScreens = NSScreen.screens.count
 			self.spacesVisited.removeAll(keepingCapacity: true)
+			self.restoreState()
+			// Displays often come online stepwise on reconnect; AX rejects positions outside
+			// any currently-known display rect, so windows headed for a still-arriving display
+			// can get clamped onto the primary one. Re-apply once everything has settled.
+			self.scheduleRetry(after: 0.4)
+			self.scheduleRetry(after: 1.5)
+		}
+	}
+
+	private func scheduleRetry(after delay: TimeInterval) {
+		DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+			guard let self = self else { return }
+			self.spacesNeedRestore = Set(self.spacesAll)
 			self.restoreState()
 		}
 	}
@@ -61,20 +100,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	// MARK: - Save State (CGWindow) -
 	
-	private func saveState() {
+	private func saveState(snapshot: WinConf? = nil, snapshotNumScreens: Int? = nil) {
 		self.spacesNeedRestore = Set(self.spacesAll)
-		if self.state[self.numScreens] == nil {
-			self.state[self.numScreens] = [:]  // otherwise state.keys wont run
+		let oldNum = snapshotNumScreens ?? self.numScreens
+		if self.state[oldNum] == nil {
+			self.state[oldNum] = [:]  // otherwise state.keys wont run
 		}
-		let newState = self.getState()
+		let newState = snapshot ?? self.getState()
 		let dummy: WinPos = (0, CGRect.zero)
 		for kNum in self.state.keys {
-			let isCurrent = kNum == self.numScreens
-			var tmp_state: WinConf = [:]
+			let isCurrent = kNum == oldNum
+			// For non-current screen counts, seed with the existing snapshot so apps/windows that
+			// are temporarily missing from newState (e.g., apps that hide windows when their
+			// display disconnects) don't get dropped. For the current screen count, start fresh.
+			var tmp_state: WinConf = isCurrent ? [:] : (self.state[kNum] ?? [:])
 			for (n_app, n_windows) in newState {
 				if let old_windows = self.state[kNum]![n_app] {
 					var win_arr: [WinPos] = []
+					var seen: Set<WinNum> = []
 					for n_win in n_windows {
+						seen.insert(n_win.0)
 						// In theory, every space that was visited, was also restored.
 						// If not visited (and not restored) then windows may still appear minimized,
 						// so we rather copy the old value, assuming windows weren't moved while in an unvisited space.
@@ -86,9 +131,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 							win_arr.append(old_win ?? dummy)
 						}
 					}
+					if !isCurrent {
+						// Preserve old windows whose winNum isn't currently visible; otherwise a
+						// disconnect that hides windows on a vanishing display would erase their
+						// saved positions.
+						for ow in old_windows where !seen.contains(ow.0) {
+							win_arr.append(ow)
+						}
+					}
 					tmp_state[n_app] = win_arr
 				} else if isCurrent {  // and not saved yet
-					tmp_state[n_app] = n_windows  // TODO: or only add if visited?
+					tmp_state[n_app] = n_windows
 				}
 			}
 			self.state[kNum] = tmp_state
@@ -127,7 +180,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	}
 	
 	// MARK: - Restore State (AXUIElement) -
-	
+
 	private func restoreState() {
 		if let space = currentSpace(), self.spacesNeedRestore.contains(space) {
 			self.spacesNeedRestore.remove(space)
@@ -141,15 +194,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 	
 	private func setWindowSizes(_ pid: pid_t, _ sizes: [WinPos]) {
 		guard sizes.count > 0 else { return }
-		let win = self.axWinList(pid)
-		guard win.count == sizes.count else { return }
-		for i in 0 ..< win.count {
-			var pt = sizes[i].1
-			if pt.isEmpty { continue }  // filter dummy elements
+		// Map each AX window to its CGWindowID so we can match by winNum instead of
+		// by list index. AX may legitimately return more windows than CGWindowList
+		// (auxiliary panels, hidden tabs), so an index/count match would silently
+		// skip entire apps whenever the two lists diverge.
+		var axByWin: [WinNum: AXUIElement] = [:]
+		for ax in self.axWinList(pid) {
+			var cgID: CGWindowID = 0
+			if _AXUIElementGetWindow(ax, &cgID) == .success && cgID != 0 {
+				axByWin[WinNum(cgID)] = ax
+			}
+		}
+		for (winNum, rect) in sizes {
+			var pt = rect
+			if pt.isEmpty { continue }  // dummy element
+			guard let axWin = axByWin[winNum] else { continue }
 			let origin = AXValueCreate(AXValueType(rawValue: kAXValueCGPointType)!, &pt.origin)!
 			let size = AXValueCreate(AXValueType(rawValue: kAXValueCGSizeType)!, &pt.size)!
-			AXUIElementSetAttributeValue(win[i], kAXPositionAttribute as CFString, origin);
-			AXUIElementSetAttributeValue(win[i], kAXSizeAttribute as CFString, size);
+			// size→position→size→position: shrink first so AX doesn't clamp the new
+			// origin against the current frame, then move, then re-apply the exact
+			// size, and finally re-confirm the position in case size nudged it.
+			AXUIElementSetAttributeValue(axWin, kAXSizeAttribute as CFString, size)
+			AXUIElementSetAttributeValue(axWin, kAXPositionAttribute as CFString, origin)
+			AXUIElementSetAttributeValue(axWin, kAXSizeAttribute as CFString, size)
+			AXUIElementSetAttributeValue(axWin, kAXPositionAttribute as CFString, origin)
 		}
 	}
 	
