@@ -22,18 +22,14 @@ Installation
 Requires macOS Yosemite (10.10) or higher.
 
 ```sh
-brew install --cask heo-leo/tap/lemmon
+brew install --cask heo-leo/tap/lemmon && open -a Lemmon
 ```
 
 or download from [releases](https://github.com/heo-leo/Lemmon/releases/latest).
 
-After installing, you must grant Accessibility permission — `brew install` cannot do this for you (macOS TCC is user-mediated):
+The first launch triggers macOS's Accessibility permission prompt. To finish setup, **toggle `Lemmon.app` on** in **System Settings → Privacy & Security → 손쉬운 사용 (Accessibility)** — this step has to be done by hand because macOS TCC does not let installers grant it.
 
-1. Launch `Lemmon.app` from `/Applications` (or Spotlight) once.
-2. Open **System Settings → Privacy & Security → 손쉬운 사용 (Accessibility)**.
-3. Toggle `Lemmon.app` **on** in the list.
-
-Without this, save still works but window restore silently no-ops.
+Without the toggle, save still works but window restore silently no-ops.
 
 ### macOS 10.14.3 or lower
 
