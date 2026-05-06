@@ -59,7 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 			}
 		}
 		self.statusItem.menu = NSMenu(title: "")
-		self.statusItem.menu!.addItem(withTitle: "Memmon (v1.5)", action: nil, keyEquivalent: "")
+		self.statusItem.menu!.addItem(withTitle: "Lemmon (v1.5.0-lemmon)", action: nil, keyEquivalent: "")
 		self.statusItem.menu!.addItem(withTitle: "Hide Status Icon", action: #selector(self.enableInvisbleMode), keyEquivalent: "")
 		self.statusItem.menu!.addItem(withTitle: "Quit", action: #selector(NSApp.terminate), keyEquivalent: "q")
 	}

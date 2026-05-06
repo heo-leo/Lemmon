@@ -1,4 +1,4 @@
-APP_NAME := Memmon
+APP_NAME := Lemmon
 
 # usage: make [CONFIG=debug|release]
 ifeq ($(CONFIG), debug)

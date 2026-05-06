@@ -1,6 +1,6 @@
 [![macOS 10.10+](https://img.shields.io/badge/macOS-10.10+-888)](#)
-[![Current release](https://img.shields.io/github/release/relikd/Memmon)](https://github.com/relikd/Memmon/releases/latest)
-[![All downloads](https://img.shields.io/github/downloads/relikd/Memmon/total)](https://github.com/relikd/Memmon/releases)
+[![Current release](https://img.shields.io/github/release/heo-leo/Lemmon)](https://github.com/heo-leo/Lemmon/releases/latest)
+[![All downloads](https://img.shields.io/github/downloads/heo-leo/Lemmon/total)](https://github.com/heo-leo/Lemmon/releases)
 
 <img src="img/icon.svg" width="180" height="180">
 
@@ -8,21 +8,20 @@
 Lemmon (Leo's Memmon)
 ======
 
-Memmon remembers what your Mac forgets – A simple deamon that restores your window positions on external monitors.
+Lemmon remembers what your Mac forgets – A simple daemon that restores your window positions on external monitors. Forked from [relikd/Memmon](https://github.com/relikd/Memmon) with reliability fixes for monitor disconnect/reconnect.
 
 **Limitations:**
-- Currently, Memmon restores windows in other spaces only if the space is activated.
-  If you know a way to access the accessibility settings of a different space, let me know.
-- Support for the Misson Control config option “Displays have separate Spaces” is not tested.
-  I will add support for this as soon as I have access to an external monitor again (issue [#5](https://github.com/relikd/Memmon/issues/5#issuecomment-1040611494)).
+- Currently, Lemmon restores windows in other spaces only if the space is activated.
+- Support for the Mission Control config option "Displays have separate Spaces" is not tested
+  (upstream issue [#5](https://github.com/relikd/Memmon/issues/5#issuecomment-1040611494)).
 
 
 Usage
 -----
 
-Grant Memmon the Accessibility privilege.
-Go to "System Preference" > "Security & Privacy" > "Accessibility" and add Memmon to that list.
-(Otherwise, the app can't move application windows around)
+Grant Lemmon the Accessibility privilege.
+Go to "System Settings" > "Privacy & Security" > "Accessibility" and add Lemmon to that list.
+(Otherwise, the app can't move application windows around.)
 
 
 Installation
@@ -31,11 +30,10 @@ Installation
 Requires macOS Yosemite (10.10) or higher.
 
 ```sh
-brew install --cask relikd/tap/memmon
-xattr -d com.apple.quarantine /Applications/Memmon.app
+brew install --cask heo-leo/tap/lemmon
 ```
 
-or download from [releases](https://github.com/relikd/Memmon/releases/latest).
+or download from [releases](https://github.com/heo-leo/Lemmon/releases/latest).
 
 ### macOS 10.14.3 or lower
 
@@ -56,21 +54,21 @@ Options
 ### Menu Bar Icon
 
 You can hide the menu bar icon either via `defaults` or the same-titled menu entry.
-If you do so, the only way to quit the app is by killing the process (with Activity.app or `killall Memmon`).
+If you do so, the only way to quit the app is by killing the process (with Activity.app or `killall Lemmon`).
 The menu bar icon stays hidden during this execution only. If you restart the OS or app it will reappear (unless you hide the icon with `defaults`).
 
-Memmon has exactly one app-setting, the menu bar icon.
+Lemmon has exactly one app-setting, the menu bar icon.
 You can manipulate the display of the icon, or hide the icon completely:
 
 ```sh
 # disable menu bar icon completely
-defaults write de.relikd.Memmon icon -int 0
+defaults write de.heo-leo.Lemmon icon -int 0
 # Use window-dots-icon
-defaults write de.relikd.Memmon icon -int 1
+defaults write de.heo-leo.Lemmon icon -int 1
 # Use monitor-with-windows icon (default)
-defaults write de.relikd.Memmon icon -int 2
+defaults write de.heo-leo.Lemmon icon -int 2
 # re-enable menu bar icon and use default icon
-defaults delete de.relikd.Memmon icon
+defaults delete de.heo-leo.Lemmon icon
 ```
 
 ![menu bar icons](img/status_icons.png)
@@ -102,8 +100,8 @@ Actually, I don't want to think about this problem at all – I just want to fix
 
 ### What is it good for?
 
-First off, Memmon is less than 300 lines of code – no dependencies.
-You can audit it in 10 minutes...
+First off, Lemmon is less than 300 lines of code – no dependencies.
+You can audit it in 10 minutes...
 And build it from scratch.
 
 Secondly, it does one thing and one thing only:
