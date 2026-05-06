@@ -5,7 +5,7 @@
 <img src="img/icon.svg" width="180" height="180">
 
 
-Memmon
+Lemmon (Leo's Memmon)
 ======
 
 Memmon remembers what your Mac forgets – A simple deamon that restores your window positions on external monitors.
